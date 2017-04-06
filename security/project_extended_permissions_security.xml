@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Two access groups -->
+    
+    <record id="group_project_permit_rw_all_tasks_issues" model="res.groups">
+        <field name="name">Проект: право чтения и изменения ВСЕХ задач и вопросов</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+        <field name="users" eval="[(4, ref('base.user_root'))]"/>
+    </record>
+    
+    <record id="group_project_permit_rw_assigned_tasks_issues" model="res.groups">
+        <field name="name">Проект: право чтения и изменения НАЗНАЧЕННЫХ на пользователя задач и вопросов</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+    </record>
+    
+<data noupdate="0">
+    
+    <!-- Three global rules for access by companies of user -->
+    
+    <record model="ir.rule" id="project_comp_rule_extended">
+        <field name="name">Project: multi-company (extended)</field>
+        <field name="model_id" ref="project.model_project_project"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',
+            ('company_id', 'in', user.company_ids.ids + [user.company_id.id]),
+
+            ('company_ids', 'in', user.company_ids.ids + [user.company_id.id])
+                                    ]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+    
+    <record model="ir.rule" id="task_comp_rule_extended">
+        <field name="name">Project/Task: multi-company (extended)</field>
+        <field name="model_id" ref="project.model_project_task"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',
+            ('company_id', 'in', user.company_ids.ids + [user.company_id.id]),
+
+            ('project_id.company_ids', 'in', user.company_ids.ids + [user.company_id.id])
+                                    ]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+    
+    <record model="ir.rule" id="issue_comp_rule_extended">
+        <field name="name">Project/Issue: multi-company (extended)</field>
+        <field name="model_id" ref="project_issue.model_project_issue"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', '|',
+            ('company_id', 'in', user.company_ids.ids + [user.company_id.id]),
+
+            ('project_id.company_ids', 'in', user.company_ids.ids + [user.company_id.id]),
+
+            ('task_id.project_id.company_ids', 'in', user.company_ids.ids + [user.company_id.id])
+                                    ]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+    
+    <!-- Two prohibitions of (creating,) deleting for 'Project / User' -->
+    
+    <record model="ir.rule" id="task_nocreate_nodelete_user_extended">
+        <field name="name">Project/Task: multi-company (extended): No Create / No Delete for project-User</field>
+        <field name="model_id" ref="project.model_project_task"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[( (0 if (
+
+user.has_group('project.group_project_user')
+
+and not
+
+user.has_group('project.group_project_manager')
+
+) else 1), '=', 1 )]</field>
+        <field name="perm_read" eval="0"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+    
+    <record model="ir.rule" id="issue_nodelete_user_extended">
+        <field name="name">Project/Issue: multi-company (extended): No Delete for project-User</field>
+        <field name="model_id" ref="project_issue.model_project_issue"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[( (0 if (
+
+user.has_group('project.group_project_user')
+
+and not
+
+user.has_group('project.group_project_manager')
+
+) else 1), '=', 1 )]</field>
+        <field name="perm_read" eval="0"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+    
+    <!-- Final rules distribution -->
+    
+    <record model="ir.rule" id="task_final_rules_extended">
+        <field name="name">Project/Task: multi-company (extended): Final rules distribution</field>
+        <field name="model_id" ref="project.model_project_task"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[
+'|',
+(not user.has_group('project.group_project_user'), '=', True),
+'|',
+(user.has_group('project.group_project_manager'), '=', True),
+'|',
+(user.has_group('project_extended_permissions.group_project_permit_rw_all_tasks_issues'), '=', True),
+'&amp;',
+(user.has_group('project_extended_permissions.group_project_permit_rw_assigned_tasks_issues'), '=', True),
+('user_id','=',user.id),
+                                    ]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+    
+    <record model="ir.rule" id="issue_final_rules_extended">
+        <field name="name">Project/Issue: multi-company (extended): Final rules distribution</field>
+        <field name="model_id" ref="project_issue.model_project_issue"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[
+'|',
+(not user.has_group('project.group_project_user'), '=', True),
+'|',
+(user.has_group('project.group_project_manager'), '=', True),
+'|',
+(user.has_group('project_extended_permissions.group_project_permit_rw_all_tasks_issues'), '=', True),
+'&amp;',
+(user.has_group('project_extended_permissions.group_project_permit_rw_assigned_tasks_issues'), '=', True),
+('user_id','=',user.id),
+                                    ]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+    
+</data>
+    
+</odoo>
